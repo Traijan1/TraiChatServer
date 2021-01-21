@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30804.86
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TraiChatServer", "TraiChatServer\TraiChatServer.csproj", "{1829FF82-1AEB-40ED-AA55-8E77414EAA6C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1829FF82-1AEB-40ED-AA55-8E77414EAA6C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1829FF82-1AEB-40ED-AA55-8E77414EAA6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1829FF82-1AEB-40ED-AA55-8E77414EAA6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1829FF82-1AEB-40ED-AA55-8E77414EAA6C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C7CD690A-C12D-4EA7-B32A-87EC37743965}
+	EndGlobalSection
+EndGlobal
