@@ -7,7 +7,6 @@ using System.Text;
 namespace TraiChatServer {
     static class Server {
         static String _name;
-        static List<Client> _connectedClients;
         static List<Chat> _chats;
 
         static Socket serverSocket;
@@ -19,7 +18,6 @@ namespace TraiChatServer {
         public static void InitServer() {
             _name = "Traijan's Verrückter Server";
             buf = new byte[4096];
-            _connectedClients = new List<Client>();
             
             // Server starten
             serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -44,8 +42,6 @@ namespace TraiChatServer {
             var message = new SocketMessage(MessageType.Verify);
             message.AddHeaderData("name", _name); // Send things like Server Name, Online Users, etc
             socket.Send(message.ToJSONBytes());
-
-            //AddClient(new Client());
         }
 
         static void ReceiveCallback(IAsyncResult ar) {
@@ -56,12 +52,13 @@ namespace TraiChatServer {
                 recv = sock.EndReceive(ar); 
             }
             catch {
-                // Find Client with sock als Socket and disconnect him properly
+                if(!ClientManager.DisconnectClient(sock, out string name))
+                    Console.WriteLine("[ERROR] Konnte Client nicht disconnecten");
+                else
+                    Console.WriteLine("[CONNECTION] " + name + " hat die Verbindung verloren");
+
                 return;
             }
-
-
-            sock.BeginReceive(buf, 0, buf.Length, SocketFlags.None, ReceiveCallback, sock);
 
             byte[] data = new byte[recv];
             Array.Copy(buf, data, recv);
@@ -70,15 +67,23 @@ namespace TraiChatServer {
 
             switch(m.MessageType) {
                 case MessageType.Verify:
-                    AddClient(m);
+                    AddClient(m, sock);
                     break;
+                case MessageType.Disconnect:
+                    ClientManager.DisconnectClient(sock, out string name);
+                    Console.WriteLine("[CONNECTION] " + name + " hat die Verbindung getrennt");
+                    return; // Just dont begin to receive new data
             }
+
+            sock.BeginReceive(buf, 0, buf.Length, SocketFlags.None, ReceiveCallback, sock);
         }
 
-        public static void AddClient(SocketMessage m) {
-            _connectedClients.Add(new Client());
+        public static void AddClient(SocketMessage m, Socket socket) {
+            ClientManager.Add(new Client(m.Header["name"], m.Header["id"], socket));
+            // Maybe think about a message to all users in chat
+            // show in list (if some list exists in gui)
 
-            Console.WriteLine("[Neue Verbindung] Client besitzt die ID: " + m.Header["id"] + " mit dem Namen: " + m.Header["name"]);
+            Console.WriteLine("[CONNECTION] Client besitzt die ID: " + m.Header["id"] + " mit dem Namen: " + m.Header["name"]);
         }
     }
 }

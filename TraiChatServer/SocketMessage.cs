@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Web;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace TraiChatServer {
+
     [Serializable]
     public enum MessageType {
         Verify, // Server sends Verify-Message to Client and Client answers with Verify-Message
-
+        Disconnect,
     }
 
     [Serializable]
@@ -16,9 +19,9 @@ namespace TraiChatServer {
         public Dictionary<String, String> Header { get; private set; }
         public MessageType MessageType { get; private set; }
 
-        public SocketMessage(MessageType type) {
+        public SocketMessage(MessageType messageType) {
             Header = new Dictionary<String, String>();
-            MessageType = type;
+            MessageType = messageType;
         }
 
         public void AddHeaderData(String key, String data) {
@@ -26,11 +29,13 @@ namespace TraiChatServer {
         }
 
         public byte[] ToJSONBytes() {
-            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(this));
+            String json = JsonConvert.SerializeObject(this);
+            return Encoding.UTF8.GetBytes(json);
         }
 
         public static SocketMessage FromJSONBytes(byte[] json) {
-            return JsonConvert.DeserializeObject<SocketMessage>(Encoding.UTF8.GetString(json));
+            String s = Encoding.UTF8.GetString(json);
+            return JsonConvert.DeserializeObject<SocketMessage>(s);
         }
     }
 }
