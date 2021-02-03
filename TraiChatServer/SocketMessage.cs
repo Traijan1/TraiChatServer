@@ -12,6 +12,12 @@ namespace TraiChatServer {
     public enum MessageType {
         Verify, // Server sends Verify-Message to Client and Client answers with Verify-Message
         Disconnect,
+        Message,
+        JoinChat,
+        ChatContent,
+        SendOnlineUsers,
+        NewUserConnected,
+        OtherClientDisconnect,
     }
 
     [Serializable]

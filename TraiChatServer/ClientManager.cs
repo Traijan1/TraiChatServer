@@ -12,12 +12,17 @@ namespace TraiChatServer {
             online.Add(cl);
         }
 
-        public static Client FindByName(String id) {
+        public static Client FindByID(String id) {
             return online.Find(client => client.ID == id);
         }
 
         public static Client FindBySocket(Socket socket) {
             return online.Find(client => client.Socket == socket);
+        }
+
+        public static void Broadcast(SocketMessage message) {
+            foreach(var c in Online)
+                c.Send(message);
         }
 
         public static bool DisconnectClient(Socket socket, out string name) {
@@ -29,8 +34,10 @@ namespace TraiChatServer {
             }
 
             name = client.Name;
+            SocketMessage clientDisconnectMessage = new SocketMessage(MessageType.OtherClientDisconnect);
+            clientDisconnectMessage.AddHeaderData("id", client.ID);
+            Broadcast(clientDisconnectMessage);
 
-            // Disconnect from chat + send a chat message that x disconnected
             // If a Userlist exists, update it
 
             return true;
