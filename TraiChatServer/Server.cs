@@ -18,24 +18,33 @@ namespace TraiChatServer {
         public static String Name { get { return _name; } }
 
         public static void InitServer() {
-            Console.WriteLine("[STARTUP] Auslesen der Konfigurationsdatei...");
-            _name = "Traijan's Verrückter Server";
-            buf = new byte[4096];
-
-            Console.WriteLine("[STARTUP] Erfolgreich ausgelesen");
-
+            // Datenbankverbindung aufbauen
             Console.WriteLine("[STARTUP] Verbindung zur Datenbank herstellen...");
             Database.Connect();
             Console.WriteLine("[STARTUP] Erfolgreich eine Verbindung hergestellt");
 
-            Console.WriteLine("[STARTUP] Server starten...");
+            // Chats laden
+            Console.WriteLine("[STARTUP] Chats werden geladen...");
+            Database.GetChats();
+            Console.WriteLine("[STARTUP] Chats wurden erfolgreich geladen");
+
+            // Konfiguration auslesen (iwann in Datenbank ausweiten, oder Config File (je nachdem wo man die Sachen ändern soll))
+            Console.WriteLine("[STARTUP] Auslesen der Konfigurationsdatei...");
+            _name = "Traijan's Verrückter Server";
+            buf = new byte[4096];
+            Console.WriteLine("[STARTUP] Erfolgreich ausgelesen");
+
             // Server starten
+            Console.WriteLine("[STARTUP] Server starten...");
             serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             serverSocket.Bind(new IPEndPoint(IPAddress.Any, port));
             serverSocket.Listen(2); // 2 gleichzeitig zum accepten, alle andere in einer Warteschlange
             serverSocket.BeginAccept(new AsyncCallback(AcceptCallback), null);
-
             Console.WriteLine("[STARTUP] Erfolgreich Server gestartet");
+        }
+
+        static void FirstInit() {
+            ChatManager.CreateChat("Welcome", primary: true);
         }
 
         static void AcceptCallback(IAsyncResult ar) {
@@ -72,6 +81,7 @@ namespace TraiChatServer {
             switch(m.MessageType) {
                 case MessageType.Verify:
                     AddClient(m, sock);
+                    SendChats(sock);
                     break;
                 case MessageType.Disconnect:
                     ClientManager.DisconnectClient(sock, out string name);
@@ -106,7 +116,7 @@ namespace TraiChatServer {
 
             // Allen anderen eine Nachricht schicken das der neue Client gejoint ist
             var socketMessage = new SocketMessage(MessageType.NewUserConnected);
-            socketMessage.AddHeaderData("user", c.Name);
+            socketMessage.AddHeaderData("name", c.Name);
             socketMessage.AddHeaderData("id", c.ID);
             ClientManager.Broadcast(socketMessage);
 
@@ -129,6 +139,26 @@ namespace TraiChatServer {
             socket.Send(socketMessage.ToJSONBytes());
 
             Console.WriteLine("[CONNECTION] Client besitzt die UID: " + c.ID + " mit dem Namen: " + c.Name);
+        }
+
+        public static void SendChats(Socket socket) {
+            var sm = new SocketMessage(MessageType.GetChats);
+            List<Dictionary<String, String>> chats = new List<Dictionary<String, String>>();
+
+            foreach(var c in ChatManager.Chats) {
+                Dictionary<String, String> cache = new Dictionary<string, string>();
+
+                cache.Add("name", c.Name);
+                cache.Add("desc", c.Description);
+                cache.Add("id", c.ID);
+
+                chats.Add(cache);
+            }
+
+            String json = JsonConvert.SerializeObject(chats);
+
+            sm.AddHeaderData("chats", json);
+            socket.Send(sm.ToJSONBytes());
         }
     }
 }

@@ -18,6 +18,8 @@ namespace TraiChatServer {
         SendOnlineUsers,
         NewUserConnected,
         OtherClientDisconnect,
+        ChatWasCreated,
+        GetChats,
     }
 
     [Serializable]

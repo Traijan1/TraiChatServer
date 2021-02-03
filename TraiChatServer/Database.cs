@@ -77,18 +77,32 @@ namespace TraiChatServer {
             return chatMessage;
         }
 
-        public static String CreateChat(String name, String desc = "") {
+        public static String CreateChat(String name, String desc = "", bool primary = false) {
             Guid uuid = Guid.NewGuid();
 
-            session.Execute("INSERT INTO chat (id, name, description, icon) VALUES (" +
-                    uuid + ", " +
-                    name + ", " +
-                    desc + ", " +
-                    "" + // Chat Icon später hinzufügen
-                ");");
-
+            session.Execute("INSERT INTO chat (id, name, description, icon, primaryChat, created) VALUES (" +
+                    uuid + 
+                    ", '" + name + "'" +
+                    ", '" + desc + "'" +
+                    ", '" + "' ," + // Chat Icon später hinzufügen
+                    primary + ", " +
+                    "toTimestamp(now())" +
+                 ");") ;
 
             return uuid.ToString();
+        }
+
+        public static void GetChats() {
+            var result = session.Execute("SELECT * FROM chat");
+
+            foreach(var row in result) {
+                String id = row.GetValue<Guid>("id").ToString();
+                String name = row.GetValue<String>("name");
+                String desc = row.GetValue<String>("description");
+
+                Chat cache = new Chat(id, name, desc);
+                ChatManager.AddChat(cache);
+            }
         }
 
         public static String GetUID(String email) { 
