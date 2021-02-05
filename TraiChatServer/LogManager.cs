@@ -13,6 +13,9 @@ namespace TraiChatServer {
         public static void LogChatEvent(String text) {
             Console.WriteLine("[CHAT] " + text);
         }
+        public static void LogStartup(String text) {
+            Console.WriteLine("[STARTUP] " + text);
+        }
 
         public static void LogWarning(String text) {
             Console.ForegroundColor = ConsoleColor.Yellow;

@@ -19,32 +19,32 @@ namespace TraiChatServer {
 
         public static void InitServer() {
             // Datenbankverbindung aufbauen
-            Console.WriteLine("[STARTUP] Verbindung zur Datenbank herstellen...");
+            LogManager.LogStartup("Verbindung zur Datenbank herstellen...");
             Database.Connect();
-            Console.WriteLine("[STARTUP] Erfolgreich eine Verbindung hergestellt");
+            LogManager.LogStartup("Erfolgreich eine Verbindung hergestellt");
 
             // Chats laden
-            Console.WriteLine("[STARTUP] Chats werden geladen...");
+            LogManager.LogStartup("Chats werden geladen...");
             Database.GetChats();
-            Console.WriteLine("[STARTUP] Chats wurden erfolgreich geladen");
+            LogManager.LogStartup("Chats wurden erfolgreich geladen");
 
             // Konfiguration auslesen (iwann in Datenbank ausweiten, oder Config File (je nachdem wo man die Sachen ändern soll))
-            Console.WriteLine("[STARTUP] Auslesen der Konfigurationsdatei...");
+            LogManager.LogStartup("Auslesen der Konfigurationsdatei...");
             _name = "Traijan's Verrückter Server";
             buf = new byte[4096];
-            Console.WriteLine("[STARTUP] Erfolgreich ausgelesen");
+            LogManager.LogStartup("Erfolgreich ausgelesen");
 
             // Server starten
-            Console.WriteLine("[STARTUP] Server starten...");
+            LogManager.LogStartup("Server starten...");
             serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             serverSocket.Bind(new IPEndPoint(IPAddress.Any, port));
             serverSocket.Listen(2); // 2 gleichzeitig zum accepten, alle andere in einer Warteschlange
             serverSocket.BeginAccept(new AsyncCallback(AcceptCallback), null);
-            Console.WriteLine("[STARTUP] Erfolgreich Server gestartet");
+            LogManager.LogStartup("Erfolgreich Server gestartet");
         }
 
         static void FirstInit() {
-            ChatManager.CreateChat("Welcome", primary: true);
+            ChatManager.CreateChat("Welcome", primary: true); // 2 Parameter mit Default values, mit : kann man entscheiden welchen man setzen will
         }
 
         static void AcceptCallback(IAsyncResult ar) {
@@ -66,9 +66,9 @@ namespace TraiChatServer {
             }
             catch {
                 if(!ClientManager.DisconnectClient(sock, out string name))
-                    Console.WriteLine("[ERROR] Konnte Client nicht disconnecten");
+                    LogManager.LogError("Konnte Client nicht disconnecten");
                 else
-                    Console.WriteLine("[CONNECTION] " + name + " hat die Verbindung verloren");
+                    LogManager.LogConnection(name + " hat die Verbindung verloren");
 
                 return;
             }
