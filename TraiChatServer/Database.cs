@@ -17,24 +17,25 @@ namespace TraiChatServer {
             session = cluster.Connect(keySpace);
         }
 
-        public static String AddMessage(String mes, String file, String uid) {
+        public static String AddMessage(String mes, String file, String uid, String chatID) {
             Guid uuid = Guid.NewGuid();
 
             session.Execute("INSERT INTO messages " +
-                    "(id, time, message, file, reply, edited, uid) values (" + uuid +
+                    "(id, time, message, file, reply, edited, uid, chat) values (" + uuid +
                     ", toTimestamp(now())" +
                     ", '" + mes + "'" +
                     ", '" + file + "'" +
                     ", " + Guid.Empty +
                     ", " + false +
                     ", " + Guid.Parse(uid) +
+                    ", " + chatID +
                 ");");
 
             return uuid.ToString();
         }
 
-        public static List<ChatMessage> GetMessages(int limitVal = 50) { // NOCH DATEIEN EINBAUEN
-            var messages = session.Execute("SELECT id, time, message, file, reply, edited, uid FROM messages LIMIT " + limitVal + ";");
+        public static List<ChatMessage> GetMessages(String chatId, int limitVal = 50) { // NOCH DATEIEN EINBAUEN, Schauen ob es auch 50 Nachrichten zuschicken kann
+            var messages = session.Execute("SELECT id, time, message, file, reply, edited, uid FROM messages WHERE chat = " + chatId + " LIMIT " + limitVal + " ALLOW FILTERING;");
 
             List<ChatMessage> list = new List<ChatMessage>();
 
@@ -99,8 +100,9 @@ namespace TraiChatServer {
                 String id = row.GetValue<Guid>("id").ToString();
                 String name = row.GetValue<String>("name");
                 String desc = row.GetValue<String>("description");
+                bool primary = row.GetValue<bool>("primarychat");
 
-                Chat cache = new Chat(id, name, desc);
+                Chat cache = new Chat(id, name, desc, primary);
                 ChatManager.AddChat(cache);
             }
         }
