@@ -17,15 +17,17 @@ namespace TraiChatServer {
             session = cluster.Connect(keySpace);
         }
 
-        public static String AddMessage(String mes, String file, String uid, String chatID) {
+        public static String AddMessage(String mes, String file, String uid, String chatID, String reply) {
             Guid uuid = Guid.NewGuid();
+            String replyID = reply == "" ? Guid.Empty.ToString() : reply; // Schauen was als reply-ID eingesetzt werden soll
 
+            // Dollar String
             session.Execute("INSERT INTO messages " +
                     "(id, time, message, file, reply, edited, uid, chat) values (" + uuid +
                     ", toTimestamp(now())" +
                     ", '" + mes + "'" +
                     ", '" + file + "'" +
-                    ", " + Guid.Empty +
+                    ", " + replyID +
                     ", " + false +
                     ", " + Guid.Parse(uid) +
                     ", " + chatID +
@@ -59,7 +61,7 @@ namespace TraiChatServer {
             return list;
         }
 
-        public static ChatMessage GetReplyMessage(String messageID) {
+        public static ChatMessage GetReplyMessage(String messageID) { // maybe nur ID returnen, je nachdem wie ich es weiter aufbauen will
             var messages = session.Execute("SELECT id, time, message, file, edited, uid FROM messages where id = " + messageID + " and time < toTimestamp(now()) ALLOW FILTERING;");
 
             ChatMessage chatMessage = null;

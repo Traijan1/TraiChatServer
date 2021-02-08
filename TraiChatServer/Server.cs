@@ -53,7 +53,7 @@ namespace TraiChatServer {
             socket.BeginReceive(buf, 0, buf.Length, SocketFlags.None, ReceiveCallback, socket);
 
             var message = new SocketMessage(MessageType.Verify);
-            message.AddHeaderData("name", _name); // Send things like Server Name, Online Users, etc
+            message.AddHeaderData("serverName", _name); // Send things like Server Name, Online Users, etc
             socket.Send(message.ToJSONBytes());
         }
 
@@ -94,11 +94,18 @@ namespace TraiChatServer {
                     if(m.Header["chatID"] == "")
                         throw new Exception("ChatID von Client war leer");
 
+                    String replyID = m.Header["reply"];
+
                     String uid = ClientManager.FindBySocket(sock).ID;
-                    String messageId = Database.AddMessage(m.Header["message"], m.Header["filePath"], uid, m.Header["chatID"]);
-                    
+                    String messageId = Database.AddMessage(m.Header["message"], m.Header["filePath"], uid, m.Header["chatID"], replyID);
+
+                    String replyMessage = "";
+
+                    if(replyID != Guid.Empty.ToString())
+                        replyMessage = Database.GetReplyMessage(replyID).Message;
+
                     foreach(Client c in ChatManager.FindById(m.Header["chatID"]).Users)
-                        c.SendMessage(ClientManager.FindBySocket(sock), m.Header["message"], "", messageId, "");
+                        c.SendMessage(ClientManager.FindBySocket(sock), m.Header["message"], "", messageId, replyMessage);
 
                     break;
                 case MessageType.JoinChat:
@@ -119,15 +126,13 @@ namespace TraiChatServer {
                     chat.Join(client);
 
                     // Dem Client bestätigen das er joinen darf
-                    var sm = new SocketMessage(MessageType.JoinChat);
-                    sm.AddHeaderData("id", chatID);
-                    sock.Send(sm.ToJSONBytes());                    
+                    sock.Send(JoinChatMessage(chat).ToJSONBytes());                    
 
                     // Nachrichten aus dem Chat schicken
-                    sm = new SocketMessage(MessageType.ChatContent);
+                    var sm = new SocketMessage(MessageType.ChatContent);
                     var messageList = Database.GetMessages(chatID);
 
-                    LogManager.LogChatEvent("{client.Name} ({client.ID}) hat den Chat: {chat.Name} ({chat.ID}) betreten");
+                    LogManager.LogChatEvent($"{client.Name} ({client.ID}) hat den Chat: {chat.Name} ({chat.ID}) betreten");
 
                     sm.AddHeaderData("messages", JsonConvert.SerializeObject(messageList));
                     sock.Send(sm.ToJSONBytes());
@@ -173,21 +178,27 @@ namespace TraiChatServer {
             ChatManager.Primary.Join(c);
         }
 
+        static SocketMessage JoinChatMessage(Chat chat) {
+            var sm = new SocketMessage(MessageType.JoinChat);
+            sm.AddHeaderData("id", chat.ID);
+            sm.AddHeaderData("name", chat.Name);
+            sm.AddHeaderData("desc", chat.Description);
+
+            return sm;
+        }
 
         public static void SendPrimaryChat(Socket socket) {
             // Primary Chat suchen und zuschicken
             Chat chat = ChatManager.Chats.Find(c => c.Primary == true);
 
-            var sm = new SocketMessage(MessageType.JoinChat);
-            sm.AddHeaderData("id", chat.ID);
-            socket.Send(sm.ToJSONBytes());
+            socket.Send(JoinChatMessage(chat).ToJSONBytes());
 
             System.Threading.Thread.Sleep(100); // Schauen ob man das iwie loswerden kann
 
             // Inhalte des Primary Chats zusenden
-            var sm1 = new SocketMessage(MessageType.ChatContent);
-            sm1.AddHeaderData("messages", JsonConvert.SerializeObject(Database.GetMessages(chat.ID)));
-            socket.Send(sm1.ToJSONBytes());
+            var sm = new SocketMessage(MessageType.ChatContent);
+            sm.AddHeaderData("messages", JsonConvert.SerializeObject(Database.GetMessages(chat.ID)));
+            socket.Send(sm.ToJSONBytes());
         }
 
         /// <summary>
