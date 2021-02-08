@@ -20,6 +20,7 @@ namespace TraiChatServer {
         OtherClientDisconnect,
         ChatWasCreated,
         GetChats,
+        DeleteMessage,
     }
 
     [Serializable]

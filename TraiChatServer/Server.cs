@@ -104,7 +104,7 @@ namespace TraiChatServer {
                     if(replyID != Guid.Empty.ToString())
                         replyMessage = Database.GetReplyMessage(replyID).Message;
 
-                    foreach(Client c in ChatManager.FindById(m.Header["chatID"]).Users)
+                    foreach(Client c in ChatManager.FindById(m.Header["chatID"]).Users) // So umbauen das der Chat.Broadcast() hier angewendet wird
                         c.SendMessage(ClientManager.FindBySocket(sock), m.Header["message"], "", messageId, replyMessage);
 
                     break;
@@ -136,8 +136,15 @@ namespace TraiChatServer {
 
                     sm.AddHeaderData("messages", JsonConvert.SerializeObject(messageList));
                     sock.Send(sm.ToJSONBytes());
+                    break;
+                case MessageType.DeleteMessage:
+                    String messageID = m.Header["messageID"];
+                    chatID = Database.DeleteMessage(messageID);
 
+                    var message = new SocketMessage(MessageType.DeleteMessage);
+                    message.AddHeaderData("messageID0", messageID);
 
+                    ChatManager.FindById(chatID).Broadcast(message);
                     break;
             }
 
@@ -146,7 +153,7 @@ namespace TraiChatServer {
 
         public static void AddClient(SocketMessage m, Socket socket) {
             // Zuerst hinzufügen
-            Client c = new Client(m.Header["email"], socket);
+            Client c = new Client(m.Header["email"], socket); // Über Client ID bekommen statt durch Mail
 
             // Allen anderen eine Nachricht schicken das der neue Client gejoint ist
             var socketMessage = new SocketMessage(MessageType.NewUserConnected);
@@ -178,6 +185,11 @@ namespace TraiChatServer {
             ChatManager.Primary.Join(c);
         }
 
+        /// <summary>
+        /// Gibt dem Client die Chat Daten zu dem er gerade joint
+        /// </summary>
+        /// <param name="chat">Der Chat der gejoint wird</param>
+        /// <returns></returns>
         static SocketMessage JoinChatMessage(Chat chat) {
             var sm = new SocketMessage(MessageType.JoinChat);
             sm.AddHeaderData("id", chat.ID);
@@ -187,6 +199,10 @@ namespace TraiChatServer {
             return sm;
         }
 
+        /// <summary>
+        /// Sendet den Primary-Chat an den neu verbundenen Client
+        /// </summary>
+        /// <param name="socket">Der neu verbundene Client</param>
         public static void SendPrimaryChat(Socket socket) {
             // Primary Chat suchen und zuschicken
             Chat chat = ChatManager.Chats.Find(c => c.Primary == true);

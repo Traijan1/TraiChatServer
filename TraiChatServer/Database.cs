@@ -42,7 +42,8 @@ namespace TraiChatServer {
             List<ChatMessage> list = new List<ChatMessage>();
 
             foreach(var mes in messages) {
-                String username = GetUsername(mes.GetValue<Guid>("uid").ToString()); // ClientManager.FindByID() funktioniert nicht da der User auch offline sein kann
+                String uid = mes.GetValue<Guid>("uid").ToString();
+                String username = GetUsername(uid); // ClientManager.FindByID() funktioniert nicht da der User auch offline sein kann
                 String message = mes.GetValue<String>("message");
                 DateTime time = mes.GetValue<DateTime>("time");
                 String filePath = mes.GetValue<String>("file");
@@ -55,7 +56,7 @@ namespace TraiChatServer {
                 bool wasEdited = mes.GetValue<bool>("edited");
                 String messageId = mes.GetValue<Guid>("id").ToString();
 
-                list.Add(new ChatMessage(username, message, filePath, messageId, time, reply, wasEdited));
+                list.Add(new ChatMessage(username, uid, message, filePath, messageId, time, reply, wasEdited));
             }
 
             return list;
@@ -67,17 +68,34 @@ namespace TraiChatServer {
             ChatMessage chatMessage = null;
 
             foreach(var mes in messages) {
-                String username = GetUsername(mes.GetValue<Guid>("uid").ToString()); // ClientManager.FindByID() funktioniert nicht da der User auch offline sein kann
+                String uid = mes.GetValue<Guid>("uid").ToString();
+                String username = GetUsername(uid); 
                 String message = mes.GetValue<String>("message");
                 DateTime time = mes.GetValue<DateTime>("time");
                 String filePath = mes.GetValue<String>("file");
                 bool wasEdited = mes.GetValue<bool>("edited");
                 String messageId = mes.GetValue<Guid>("id").ToString();
 
-                chatMessage = new ChatMessage(username, message, filePath, messageId, time, "", wasEdited);
+                chatMessage = new ChatMessage(username, uid, message, filePath, messageId, time, "", wasEdited);
             }
 
             return chatMessage;
+        }
+
+
+        /// <summary>
+        /// Löscht eine Nachricht aus der Datenbank
+        /// </summary>
+        /// <param name="messageID">Die ID der Nachricht die gelöscht werden soll</param>
+        /// <returns>Die Chat-ID, inwelcher die Nachricht war</returns>
+        public static String DeleteMessage(String messageID) {
+            var rows = session.Execute("SELECT chat FROM messages WHERE id = " + messageID);
+            session.Execute("DELETE FROM messages WHERE id = " + messageID);
+
+            foreach(var row in rows)
+                return row.GetValue<Guid>("chat").ToString();
+
+            throw new Exception("Die Nachricht existierte nicht");
         }
 
         public static String CreateChat(String name, String desc = "", bool primary = false) {

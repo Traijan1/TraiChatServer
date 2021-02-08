@@ -49,7 +49,7 @@ namespace TraiChatServer {
         /// <returns></returns>
         public Task SendMessage(Client source, String message, String file, String messageId, String reply) {
             return Task.Run(async () => {
-                var chat = new ChatMessage(source.Name, message, file, messageId, DateTime.Now, reply, false);
+                var chat = new ChatMessage(source.Name, source.ID, message, file, messageId, DateTime.Now, reply, false); ;
                 var m = new SocketMessage(MessageType.Message);
                 m.AddHeaderData("message", chat.ToJSON());
 

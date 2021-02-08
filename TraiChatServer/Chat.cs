@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace TraiChatServer {
     class Chat {
@@ -42,6 +43,11 @@ namespace TraiChatServer {
 
         public void Disconnect(Client user) {
             users.Remove(user);
+        }
+
+        public void Broadcast(SocketMessage sm) {
+            foreach(Client c in users)
+                c.Send(sm);
         }
     }
 }

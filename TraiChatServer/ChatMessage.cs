@@ -8,6 +8,7 @@ namespace TraiChatServer {
     public class ChatMessage {
         // Später noch TimeStamp
         public String Author { get; private set; }
+        public String AuthorID { get; private set; }
         public String Message { get; private set; }
         public String FilePath { get; private set; }
         public String MessageID { get; private set; }
@@ -15,8 +16,9 @@ namespace TraiChatServer {
         public String ReplyMessage { get; private set; }
         public bool IsEdited { get; private set; }
 
-        public ChatMessage(String author, String message, String filePath, String messageId, DateTime time, String replyMessage, bool isEdited) {
+        public ChatMessage(String author, String authorID, String message, String filePath, String messageId, DateTime time, String replyMessage, bool isEdited) {
             Author = author;
+            AuthorID = authorID;
             Message = message;
             FilePath = filePath;
             MessageID = messageId;
@@ -24,7 +26,6 @@ namespace TraiChatServer {
             ReplyMessage = replyMessage;
             IsEdited = isEdited;
         }
-
         public String ToJSON() {
             return JsonConvert.SerializeObject(this);
         }
