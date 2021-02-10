@@ -17,12 +17,6 @@ namespace TraiChatServer {
         public String ChatIcon { get; private set; }
         public bool Primary { get; private set; }
 
-        public Chat(String id) {
-            this.id = id;
-            // name = 
-            // Description = 
-        }
-
         public Chat(String id, String name, String desc, bool primary) {
             users = new List<Client>();
 
@@ -32,19 +26,31 @@ namespace TraiChatServer {
             Primary = primary;
         }
 
+        /// <summary>
+        /// Fügt einen Client in den Chat hinzu
+        /// </summary>
+        /// <param name="user">Der hinzuzufpgende Client</param>
         public void Join(Client user) {
             users.Add(user);
 
             if(user.Chat != null)
-                user.Chat.Disconnect(user);
+                user.Chat.Remove(user);
 
             user.Chat = this;
         }
 
-        public void Disconnect(Client user) {
+        /// <summary>
+        /// Entfernt einen Client aus dem Chat
+        /// </summary>
+        /// <param name="user">Der Client der entfernt werden soll</param>
+        public void Remove(Client user) {
             users.Remove(user);
         }
 
+        /// <summary>
+        /// Sendet an jeden Client im Chat eine SocketMessage
+        /// </summary>
+        /// <param name="sm">Die zu versendene SocketMessage</param>
         public void Broadcast(SocketMessage sm) {
             foreach(Client c in users)
                 c.Send(sm);

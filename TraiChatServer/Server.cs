@@ -142,7 +142,7 @@ namespace TraiChatServer {
                     chatID = Database.DeleteMessage(messageID);
 
                     var message = new SocketMessage(MessageType.DeleteMessage);
-                    message.AddHeaderData("messageID0", messageID);
+                    message.AddHeaderData("messageID", messageID);
 
                     ChatManager.FindById(chatID).Broadcast(message);
                     break;

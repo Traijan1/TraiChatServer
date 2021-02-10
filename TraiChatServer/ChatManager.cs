@@ -41,6 +41,11 @@ namespace TraiChatServer {
         public static void AddChat(Chat chat) =>
             chats.Add(chat);
 
+        /// <summary>
+        /// Sucht einen Chat anhand seiner ID
+        /// </summary>
+        /// <param name="id">Die ID des zu suchenden Chats</param>
+        /// <returns>Den gefundenen Chat</returns>
         public static Chat FindById(String id) {
             return chats.Find(c => c.ID == id);
         }
