@@ -175,8 +175,9 @@ namespace TraiChatServer {
             }
 
             // Neuen Client alle Onlineuser + sich selbst zuschicken
-            socketMessage = new SocketMessage(MessageType.SendOnlineUsers);
+            socketMessage = new SocketMessage(MessageType.SendVariousInformations);
             socketMessage.AddHeaderData("users", JsonConvert.SerializeObject(users));
+            socketMessage.AddHeaderData("id", c.ID);
             socket.Send(socketMessage.ToJSONBytes());
 
             LogManager.LogConnection("Client besitzt die UID: " + c.ID + " mit dem Namen: " + c.Name);

@@ -15,7 +15,7 @@ namespace TraiChatServer {
         Message,
         JoinChat,
         ChatContent,
-        SendOnlineUsers,
+        SendVariousInformations,
         NewUserConnected,
         OtherClientDisconnect,
         ChatWasCreated,
