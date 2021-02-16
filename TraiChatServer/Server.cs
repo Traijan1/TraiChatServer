@@ -102,7 +102,7 @@ namespace TraiChatServer {
                     String replyMessage = "";
 
                     if(replyID != Guid.Empty.ToString())
-                        replyMessage = Database.GetReplyMessage(replyID).Message;
+                        replyMessage = Database.GetMessageById(replyID).Message;
 
                     foreach(Client c in ChatManager.FindById(m.Header["chatID"]).Users) // So umbauen das der Chat.Broadcast() hier angewendet wird
                         c.SendMessage(ClientManager.FindBySocket(sock), m.Header["message"], "", messageId, replyMessage);

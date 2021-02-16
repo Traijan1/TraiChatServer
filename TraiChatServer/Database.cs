@@ -7,6 +7,8 @@ namespace TraiChatServer {
     static class Database { // create table messages (id uuid, time timestamp, message text, file text, reply uuid, edited boolean, uid uuid, PRIMARY KEY(uid, time, id)) WITH CLUSTERING ORDER BY (time DESC);
         static String ip = "192.168.178.65";
         static String keySpace = "test_messages";
+        static String messageTable = "messages";
+        static String sortedMessages = "messages_by_time";
 
         static ISession session;
 
@@ -18,6 +20,16 @@ namespace TraiChatServer {
                 .AddContactPoint(ip).WithPort(9042).WithCredentials("cassandra", "cassandra").Build();
 
             session = cluster.Connect(keySpace);
+        }
+
+        /// <summary>
+        /// Erstellt alle notwendigen Tabellen
+        /// </summary>
+        public static void CreateTables() { // Muss getestet werden
+            session.Execute("CREATE TABLE messages (id uuid, message text, file text, reply uuid, edited boolean, uid uuid, chat uuid, PRIMARY KEY(id, chat));");
+            session.Execute("CREATE TABLE messages_by_time (message_id uuid, chat uuid, time timeStamp, PRIMARY KEY(message_id, time)) WITH CLUSTERING ORDER BY (time ASC);"); // DESC oder ASC?
+            // Chat Table
+            // User Table
         }
 
         /// <summary>
@@ -33,9 +45,8 @@ namespace TraiChatServer {
             Guid uuid = Guid.NewGuid();
             String replyID = reply == "" ? Guid.Empty.ToString() : reply; // Schauen was als reply-ID eingesetzt werden soll
 
-            session.Execute("INSERT INTO messages " +
-                    "(id, time, message, file, reply, edited, uid, chat) values (" + uuid +
-                    ", toTimestamp(now())" +
+            session.Execute($"INSERT INTO {messageTable} " +
+                    "(id, message, file, reply, edited, uid, chat) values (" + uuid +
                     ", '" + mes + "'" +
                     ", '" + file + "'" +
                     ", " + replyID +
@@ -43,6 +54,9 @@ namespace TraiChatServer {
                     ", " + Guid.Parse(uid) +
                     ", " + chatID +
                 ");");
+
+            // In die sortierte Messages Tabelle eintragen
+            session.Execute($"INSERT INTO {sortedMessages} (message_id, chat, time) VALUES ({uuid}, {chatID}, toTimestamp(now()));");
 
             return uuid.ToString();
         }
@@ -54,51 +68,49 @@ namespace TraiChatServer {
         /// <param name="limitVal">Wie viele Nachrichten auf einen Rutsch rausgesucht werden</param>
         /// <returns>Eine Liste aus ChatMessages</returns>
         public static List<ChatMessage> GetMessages(String chatId, int limitVal = 50) { // NOCH DATEIEN EINBAUEN, Schauen ob es auch 50 Nachrichten zuschicken kann
-            var messages = session.Execute("SELECT id, time, message, file, reply, edited, uid FROM messages WHERE chat = " + chatId + " LIMIT " + limitVal + " ALLOW FILTERING;");
+            var messagesSorted = session.Execute($"SELECT message_id FROM {sortedMessages} WHERE chat = {chatId} LIMIT {limitVal} ALLOW FILTERING");
 
             List<ChatMessage> list = new List<ChatMessage>();
 
-            foreach(var mes in messages) {
-                String uid = mes.GetValue<Guid>("uid").ToString();
-                String username = GetUsername(uid); // ClientManager.FindByID() funktioniert nicht da der User auch offline sein kann
-                String message = mes.GetValue<String>("message");
-                DateTime time = mes.GetValue<DateTime>("time");
-                String filePath = mes.GetValue<String>("file");
-                Guid replyID = mes.GetValue<Guid>("reply");
+            foreach (var row in messagesSorted) {
+                String messageId = row.GetValue<Guid>("message_id").ToString();
 
-                String reply = "";
-                if(replyID != Guid.Empty)
-                    reply = GetReplyMessage(replyID.ToString()).Message;
-
-                bool wasEdited = mes.GetValue<bool>("edited");
-                String messageId = mes.GetValue<Guid>("id").ToString();
-
-                list.Add(new ChatMessage(username, uid, message, filePath, messageId, time, reply, wasEdited));
+                var messageRow = session.Execute($"SELECT message, file, reply, edited, uid FROM {messageTable} WHERE id = {messageId}"); // Maybe ALLOW FILTERING?
+                list.Add(GetMessageById(messageId, true));
             }
 
             return list;
         }
 
         /// <summary>
-        /// Sucht die Reply-Message raus
+        /// Sucht die Message nach der ID raus
         /// </summary>
-        /// <param name="messageID">Die ID der Reply-Message</param>
-        /// <returns>Die Reply-Message als ChatMessage</returns>
-        public static ChatMessage GetReplyMessage(String messageID) { // maybe nur ID returnen, je nachdem wie ich es weiter aufbauen will
-            var messages = session.Execute("SELECT id, time, message, file, edited, uid FROM messages where id = " + messageID + " and time < toTimestamp(now()) ALLOW FILTERING;");
+        /// <param name="messageID">Die ID der Message</param>
+        /// <returns>Die Message als ChatMessage</returns>
+        public static ChatMessage GetMessageById(String messageID, bool getReply = false) { // maybe nur ID returnen, je nachdem wie ich es weiter aufbauen will
+            var messageRow = session.Execute($"SELECT message, file, reply, edited, uid FROM {messageTable} WHERE id = {messageID}");
 
             ChatMessage chatMessage = null;
 
-            foreach(var mes in messages) {
+            foreach(var mes in messageRow) {
                 String uid = mes.GetValue<Guid>("uid").ToString();
                 String username = GetUsername(uid); 
                 String message = mes.GetValue<String>("message");
-                DateTime time = mes.GetValue<DateTime>("time");
                 String filePath = mes.GetValue<String>("file");
                 bool wasEdited = mes.GetValue<bool>("edited");
-                String messageId = mes.GetValue<Guid>("id").ToString();
+                Guid replyID = mes.GetValue<Guid>("reply");
 
-                chatMessage = new ChatMessage(username, uid, message, filePath, messageId, time, "", wasEdited);
+                var timeRow = session.Execute($"SELECT time FROM {sortedMessages} WHERE message_id = {messageID};");
+                DateTime time = DateTime.MinValue;
+
+                foreach(var row in timeRow)
+                    time = row.GetValue<DateTime>("time");
+
+                String reply = "";
+                if(replyID != Guid.Empty && getReply) // Wenn eine Reply-ID existiert und eine Reply gesucht wird mit, dann such sie.
+                    reply = GetMessageById(replyID.ToString()).Message;
+
+                chatMessage = new ChatMessage(username, uid, message, filePath, messageID, time, reply, wasEdited);
             }
 
             return chatMessage;
@@ -111,7 +123,9 @@ namespace TraiChatServer {
         /// <param name="messageID">Die ID der Nachricht die gelöscht werden soll</param>
         /// <returns>Die Chat-ID, inwelcher die Nachricht war</returns>
         public static String DeleteMessage(String messageID) {
-            var rows = session.Execute("SELECT chat FROM messages WHERE id = " + messageID);
+            var rows = session.Execute($"DELETE FROM {sortedMessages} WHERE message_id = {messageID}");
+
+            rows = session.Execute("SELECT chat FROM messages WHERE id = " + messageID);
             session.Execute("DELETE FROM messages WHERE id = " + messageID);
             // Hier noch updaten damit, wenn eine Nachricht diese Nachricht als reply hat auf Guid.Empty gesetzt wird, maybe bei messages noch ein "reply-deletet" hinzufügen, damit man anzeigen kann das die reply gelöscht wurde
 
