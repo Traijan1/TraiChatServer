@@ -116,6 +116,16 @@ namespace TraiChatServer {
             return chatMessage;
         }
 
+        /// <summary>
+        /// Updatet eine Nachricht
+        /// </summary>
+        /// <param name="id">Die Message-ID</param>
+        /// <param name="chatID">Die Chat-ID</param>
+        /// <param name="newMessage">Die neue Nachricht</param>
+        public static void UpdateMessage(String id, String chatID, String newMessage) {
+            session.Execute($"UPDATE {messageTable} SET message = '{newMessage}' WHERE id = {id} AND chat = {chatID} IF EXISTS");
+            session.Execute($"UPDATE {messageTable} SET edited = true WHERE id = {id} AND chat = {chatID} IF EXISTS");
+        }
 
         /// <summary>
         /// Löscht eine Nachricht aus der Datenbank
