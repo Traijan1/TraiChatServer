@@ -174,7 +174,7 @@ namespace TraiChatServer {
                 users.Add(cache);
             }
 
-            // Neuen Client alle Onlineuser + sich selbst zuschicken
+            // Neuen Client allen Onlineuser + sich selbst zuschicken
             socketMessage = new SocketMessage(MessageType.SendVariousInformations);
             socketMessage.AddHeaderData("users", JsonConvert.SerializeObject(users));
             socketMessage.AddHeaderData("id", c.ID);
